@@ -6,6 +6,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
+@app.get("/")
+def home():
+    return {
+        "message": "✅ API da Estação de Monitoramento está online. Use /latest?station_id=1 para ver dados."
+    }
+
 # liberar acesso do GitHub Pages
 app.add_middleware(
     CORSMiddleware,
