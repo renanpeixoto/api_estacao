@@ -26,7 +26,9 @@ DB_HOST = os.getenv("DB_HOST", "trolley.proxy.rlwy.net")
 DB_PORT = os.getenv("DB_PORT", "39108")
 DB_NAME = os.getenv("DB_NAME", "railway")
 DB_USER = os.getenv("DB_USER", "view_only")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "MUDAR_SE_NAO_PUSER_ENV")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+if not DB_PASSWORD:
+    raise RuntimeError("DB_PASSWORD não definido nas variáveis de ambiente")
 
 def get_conn():
     return psycopg2.connect(
