@@ -1,5 +1,5 @@
 import os
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 import psycopg2
 import psycopg2.extras
 from fastapi.middleware.cors import CORSMiddleware
@@ -21,14 +21,12 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# pega dados do banco das VARIÁVEIS DE AMBIENTE da Railway
+# variáveis de conexão – na Railway devem estar setadas como ENV VARS
 DB_HOST = os.getenv("DB_HOST", "trolley.proxy.rlwy.net")
 DB_PORT = os.getenv("DB_PORT", "39108")
 DB_NAME = os.getenv("DB_NAME", "railway")
 DB_USER = os.getenv("DB_USER", "view_only")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-if not DB_PASSWORD:
-    raise RuntimeError("DB_PASSWORD não definido nas variáveis de ambiente")
+DB_PASSWORD = os.getenv("DB_PASSWORD", "MUDAR_SE_NAO_PUSER_ENV")
 
 def get_conn():
     return psycopg2.connect(
@@ -74,3 +72,37 @@ def get_latest(
     cur.close()
     conn.close()
     return {"data": rows}
+
+@app.get("/tide_prediction")
+def get_tide_prediction(
+    station_id: int = Query(1),
+    limit: int = Query(200, ge=1, le=1000)
+):
+    """
+    Retorna previsões de maré da tabela soure_tide_prediction
+    para uma estação específica.
+    """
+    try:
+        conn = get_conn()
+        cur = conn.cursor(cursor_factory=psycopg2.extras.RealDictCursor)
+        cur.execute(
+            """
+            SELECT
+                "date",
+                water_level,
+                station_id,
+                id
+            FROM public.soure_tide_prediction
+            WHERE station_id = %s
+            ORDER BY "date" ASC
+            LIMIT %s;
+            """,
+            (station_id, limit),
+        )
+        rows = cur.fetchall()
+        cur.close()
+        conn.close()
+        return {"data": rows}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
